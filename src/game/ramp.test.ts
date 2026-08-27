@@ -19,54 +19,45 @@ describe('tierForCorrect', () => {
 });
 
 describe('planForProgress — grammar scope', () => {
-  it('every mode starts at nominative singular, uncued (context mode)', () => {
-    for (const p of [strong, weak, mixed, all]) {
-      const plan = planForProgress(p, 0);
-      expect(plan.constraints.cueMode).toBe('context');
-      expect(plan.constraints.tier).toBe(1);
-      expect(plan.constraints.cases).toEqual(['nom']);
+  it('every mode is fully exhaustive for its category from round one (no case-order gating)', () => {
+    for (const correct of [0, 1, N, N * 4, 999]) {
+      for (const p of [strong, weak, all]) {
+        const c = planForProgress(p, correct).constraints;
+        expect(c.cueMode).toBe('context');
+        expect(c.cases).toEqual(expect.arrayContaining(['nom', 'acc', 'dat', 'gen']));
+        expect(c.numbers).toEqual(expect.arrayContaining(['sg', 'pl']));
+      }
+      const mc = planForProgress(mixed, correct).constraints;
+      expect(mc.cases).toEqual(expect.arrayContaining(['nom', 'acc', 'dat', 'gen']));
+      expect(mc.numbers).toEqual(['sg']); // indefinite + plural unsupported
     }
   });
 
-  it('Strong is fixed to no-article throughout the ramp', () => {
+  it('Strong is fixed to no-article throughout', () => {
     for (const correct of [0, N, N * 4, 999]) {
       expect(planForProgress(strong, correct).constraints.articleTypes).toEqual(['none']);
     }
   });
 
-  it('Weak is fixed to the definite article throughout the ramp', () => {
+  it('Weak is fixed to the definite article throughout', () => {
     for (const correct of [0, N, N * 4, 999]) {
       expect(planForProgress(weak, correct).constraints.articleTypes).toEqual(['definite']);
     }
   });
 
-  it('Mixed is fixed to the indefinite article and never widens to plural', () => {
+  it('Mixed is fixed to the indefinite article throughout', () => {
     for (const correct of [0, N, N * 3, 999]) {
-      const c = planForProgress(mixed, correct).constraints;
-      expect(c.articleTypes).toEqual(['indefinite']);
-      expect(c.numbers).toEqual(['sg']);
+      expect(planForProgress(mixed, correct).constraints.articleTypes).toEqual(['indefinite']);
     }
   });
 
-  it('each single-category mode exhaustively covers its category at the top stage', () => {
-    for (const p of [strong, weak]) {
-      const top = planForProgress(p, 999).constraints;
-      expect(top.cases).toEqual(expect.arrayContaining(['nom', 'acc', 'dat', 'gen']));
-      expect(top.numbers).toEqual(expect.arrayContaining(['sg', 'pl']));
+  it('All categories draws from every article type throughout, not just at the top', () => {
+    for (const correct of [0, N, 999]) {
+      const c = planForProgress(all, correct).constraints;
+      expect(c.articleTypes).toEqual(
+        expect.arrayContaining(['definite', 'indefinite', 'none']),
+      );
     }
-    const topMixed = planForProgress(mixed, 999).constraints;
-    expect(topMixed.cases).toEqual(expect.arrayContaining(['nom', 'acc', 'dat', 'gen']));
-    expect(topMixed.numbers).toEqual(['sg']);
-  });
-
-  it('All categories widens to every article type and exhaustively covers everything at the top', () => {
-    expect(planForProgress(all, 0).constraints.articleTypes).toEqual(['definite']);
-    const top = planForProgress(all, 999).constraints;
-    expect(top.cases).toEqual(expect.arrayContaining(['nom', 'acc', 'dat', 'gen']));
-    expect(top.articleTypes).toEqual(
-      expect.arrayContaining(['definite', 'indefinite', 'none']),
-    );
-    expect(top.numbers).toEqual(expect.arrayContaining(['sg', 'pl']));
   });
 });
 
